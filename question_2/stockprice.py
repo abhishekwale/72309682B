@@ -8,17 +8,14 @@ from pydantic import BaseModel
 
 app = FastAPI()
 
-# Configuration
-TEST_SERVER_BASE_URL = "http://20.244.56.144/evaluation-service/stocks"
-TIMEOUT_MS = 500  # 500 ms timeout for test server requests
 
-#uvicorn average_calculator:application --reload --port
-# Pydantic model for price history
+TEST_SERVER_BASE_URL = "http://20.244.56.144/evaluation-service/stocks"
+TIMEOUT_MS = 500  
+
 class PriceEntry(BaseModel):
     price: float
     lastUpdatedAt: str
 
-# Pydantic model for response
 class StockResponse(BaseModel):
     averageStockPrice: float
     priceHistory: List[PriceEntry]
@@ -48,18 +45,15 @@ async def get_stock_average(ticker: str, minutes: int, aggregation: str = "avera
     """
     start_time = time.time()
     
-    # Validate inputs
     if aggregation != "average":
         raise HTTPException(status_code=400, detail="Aggregation must be 'average'")
     if minutes <= 0:
         raise HTTPException(status_code=400, detail="Minutes must be positive")
 
-    # Fetch token (placeholder; replace with actual token from auth API)
     token ="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJNYXBDbGFpbXMiOnsiZXhwIjoxNzQ5MDIxNjUxLCJpYXQiOjE3NDkwMjEzNTEsImlzcyI6IkFmZm9yZG1lZCIsImp0aSI6IjhkNmVlN2ZiLTBmZDgtNDBlMi1hNThiLTVmYTAxOGY5MjczOSIsInN1YiI6ImFiaGlzaGVrd2FsZTg1ODJAZ21haWwuY29tIn0sImVtYWlsIjoiYWJoaXNoZWt3YWxlODU4MkBnbWFpbC5jb20iLCJuYW1lIjoiYWJoaXNoZWsgd2FsZSIsInJvbGxObyI6IjcyMzA5NjgyYiIsImFjY2Vzc0NvZGUiOiJLUmpVVVUiLCJjbGllbnRJRCI6IjhkNmVlN2ZiLTBmZDgtNDBlMi1hNThiLTVmYTAxOGY5MjczOSIsImNsaWVudFNlY3JldCI6ImFUQllKemNqcXZRYkhaRWYifQ.UNJlo28vaVdn58CPEm-tq9AbpzI0oxs7gBV1Vtz-XjY"
 
     price_history = await fetch_stock_data(ticker, minutes, token)
     
-    # Filter valid entries and calculate average
     valid_entries = [
         entry for entry in price_history 
         if "price" in entry and "lastUpdatedAt" in entry
@@ -68,11 +62,9 @@ async def get_stock_average(ticker: str, minutes: int, aggregation: str = "avera
     if not valid_entries:
         raise HTTPException(status_code=400, detail="No valid price data found")
 
-    # Calculate average price
     total_price = sum(entry["price"] for entry in valid_entries)
     avg_price = total_price / len(valid_entries)
 
-    # Ensure response time < 500 ms
     elapsed_ms = (time.time() - start_time) * 1000
     if elapsed_ms > TIMEOUT_MS:
         raise HTTPException(status_code=500, detail="Response time exceeded 500 ms")
